@@ -57,8 +57,44 @@ export function getImportsForFile(file: string, srcRoot: string) {
       if (fs.existsSync(`${fileName}`)) {
         return fileName
       }
-      console.warn(`Warning: Unresolved import ${path.relative(srcRoot, fileName)} ` +
-                   `in ${path.relative(srcRoot, file)}`)
+
+      const fileNameWithAtSignAlias = `${fileName.replace('@', '')}.ts`
+      if (fs.existsSync(fileNameWithAtSignAlias)) {
+        return fileNameWithAtSignAlias
+      }
+
+        const fileNameWithAtSignAliasIndexTs = `${fileName.replace('@', '')}/index.ts`
+        if (fs.existsSync(fileNameWithAtSignAliasIndexTs)) {
+          return fileNameWithAtSignAliasIndexTs
+        }
+
+        const fileNameWithAtSignAlias1 = `${fileName.replace('@', '../')}.ts`
+        if (fs.existsSync(fileNameWithAtSignAlias1)) {
+          return fileNameWithAtSignAlias1
+        }
+
+        const fileNameWithAtSignAlias2 = `${fileName.replace('@query-filters', 'infrastructure/persistence/database/query/filters/')}.ts`
+        if (fs.existsSync(fileNameWithAtSignAlias2)) {
+          return fileNameWithAtSignAlias2
+        }
+        //
+        // const fileNameWithAtSignAlias3 = `${fileName.replace('@ads', '../node_modules/@ads/iam-library/dist/src/types.d.ts')}.ts`
+        // console.log(fileNameWithAtSignAlias3);
+        // console.log (fs.existsSync(fileNameWithAtSignAlias3));
+        //
+        // if (fs.existsSync(fileNameWithAtSignAlias3)) {
+        //   return fileNameWithAtSignAlias3
+        // }
+
+
+        if(fileName.includes('typeorm') || fileName.includes('@ads') || fileName.includes('class-transformer')) {
+          return null
+        }
+
+        console.warn(`Warning: Unresolved import ${path.relative(srcRoot, fileName)} ` +
+            `in ${path.relative(srcRoot, file)}`)
+
+
       return null
     }).filter(fileName => !!fileName)
 }

@@ -51,7 +51,7 @@ function addFileToConfig(relativeFilePath: string) {
   if (excludeIndex >= 0) {
     config.exclude.splice(excludeIndex, 1)
   } else {
-    config.files = Array.from(new Set(config.files.concat(`./${relativeFilePath}`).sort()))
+    config.include = Array.from(new Set(config.include.concat(`./${relativeFilePath}`).sort()))
   }
   fs.writeFileSync(tsconfigPath, JSON.stringify(config, null, 2))
 }
