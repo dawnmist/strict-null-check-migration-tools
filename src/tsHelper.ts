@@ -9,94 +9,35 @@ export function normalizeTsconfigPath(tsconfigPath: string) {
 /**
  * Given a file, return the list of files it imports as absolute paths.
  */
-export function getImportsForFile(file: string, srcRoot: string) {
+export function getImportsForFile(typescriptFilePath: string, srcRoot: string, config: ts.ParsedCommandLine) {
   // Follow symlink so directory check works.
-  file = fs.realpathSync(file)
-
-  if (fs.lstatSync(file).isDirectory()) {
-    const index = path.join(file, "index.ts")
-    if (fs.existsSync(index)) {
-      // https://basarat.gitbooks.io/typescript/docs/tips/barrel.html
-      console.warn(`Warning: Barrel import: ${path.relative(srcRoot, file)}`)
-      file = index
-    } else {
-      const index = path.join(file, "index.d.ts")
-
-      if (fs.existsSync(index)) {
-        // https://basarat.gitbooks.io/typescript/docs/tips/barrel.html
-        console.warn(`Warning: Barrel import: ${path.relative(srcRoot, file)}`)
-        file = index
-      } else {
-        throw new Error(`Warning: Importing a directory without an index.ts file: ${path.relative(srcRoot, file)}`)
-      }
-    }
-  }
-
-  const fileInfo = ts.preProcessFile(fs.readFileSync(file).toString());
+  typescriptFilePath = fs.realpathSync(typescriptFilePath)
+  const fileContent = fs.readFileSync(typescriptFilePath).toString();
+  const fileInfo = ts.preProcessFile(fileContent);
   return fileInfo.importedFiles
     .map(importedFile => importedFile.fileName)
     // remove svg, css imports
     .filter(fileName => !fileName.endsWith(".css") && !fileName.endsWith(".svg") && !fileName.endsWith(".json"))
     .filter(fileName => !fileName.endsWith(".js") && !fileName.endsWith(".jsx")) // Assume .js/.jsx imports have a .d.ts available
-    .filter(x => /\//.test(x)) // remove node modules (the import must contain '/')
-    .map(fileName => {
-      if (/(^\.\/)|(^\.\.\/)/.test(fileName)) {
-        return path.join(path.dirname(file), fileName)
-      }
-      return path.join(srcRoot, fileName);
-    }).map(fileName => {
-      if (fs.existsSync(`${fileName}.ts`)) {
-        return `${fileName}.ts`
-      }
-      if (fs.existsSync(`${fileName}.tsx`)) {
-        return `${fileName}.tsx`
-      }
-      if (fs.existsSync(`${fileName}.d.ts`)) {
-        return `${fileName}.d.ts`
-      }
-      if (fs.existsSync(`${fileName}`)) {
-        return fileName
-      }
-
-      const fileNameWithAtSignAlias = `${fileName.replace('@', '')}.ts`
-      if (fs.existsSync(fileNameWithAtSignAlias)) {
-        return fileNameWithAtSignAlias
-      }
-
-        const fileNameWithAtSignAliasIndexTs = `${fileName.replace('@', '')}/index.ts`
-        if (fs.existsSync(fileNameWithAtSignAliasIndexTs)) {
-          return fileNameWithAtSignAliasIndexTs
+    .reduce((imports, rawImport) => {
+        const resolvedImport =
+            ts.resolveModuleName(
+                rawImport,
+                typescriptFilePath,
+                config.options,
+                ts.sys);
+        // Depending on how fancy your ts is, the
+        // "resolvedImport.resolvedModule.resolvedFileName" may not exist,
+        // but should resolve for all ts files
+        const importLoc = resolvedImport?.resolvedModule?.resolvedFileName;
+        if (!importLoc) {
+            console.log(`ERROR: File ${typescriptFilePath} imports ${rawImport} which cannot be found!!!`);
         }
-
-        const fileNameWithAtSignAlias1 = `${fileName.replace('@', '../')}.ts`
-        if (fs.existsSync(fileNameWithAtSignAlias1)) {
-          return fileNameWithAtSignAlias1
+        else if (!importLoc.includes("/vendor/") && !importLoc.includes('/node_modules/')) {
+          imports.push(importLoc);
         }
-
-        const fileNameWithAtSignAlias2 = `${fileName.replace('@query-filters', 'infrastructure/persistence/database/query/filters/')}.ts`
-        if (fs.existsSync(fileNameWithAtSignAlias2)) {
-          return fileNameWithAtSignAlias2
-        }
-        //
-        // const fileNameWithAtSignAlias3 = `${fileName.replace('@ads', '../node_modules/@ads/iam-library/dist/src/types.d.ts')}.ts`
-        // console.log(fileNameWithAtSignAlias3);
-        // console.log (fs.existsSync(fileNameWithAtSignAlias3));
-        //
-        // if (fs.existsSync(fileNameWithAtSignAlias3)) {
-        //   return fileNameWithAtSignAlias3
-        // }
-
-
-        if(fileName.includes('typeorm') || fileName.includes('@ads') || fileName.includes('class-transformer')) {
-          return null
-        }
-
-        console.warn(`Warning: Unresolved import ${path.relative(srcRoot, fileName)} ` +
-            `in ${path.relative(srcRoot, file)}`)
-
-
-      return null
-    }).filter(fileName => !!fileName)
+        return imports;
+    }, [])
 }
 
 /**
@@ -105,13 +46,13 @@ export function getImportsForFile(file: string, srcRoot: string) {
 export class ImportTracker {
   private imports = new Map<string, string[]>()
 
-  constructor(private srcRoot: string) {}
+  constructor(private srcRoot: string, private config: ts.ParsedCommandLine) {}
 
   public getImports(file: string): string[] {
     if (this.imports.has(file)) {
       return this.imports.get(file)
     }
-    const imports = getImportsForFile(file, this.srcRoot)
+    const imports = getImportsForFile(file, this.srcRoot, this.config)
     this.imports.set(file, imports)
     return imports
   }

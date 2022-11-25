@@ -1,5 +1,5 @@
 import * as path from 'path'
-import { listStrictNullCheckEligibleFiles, forEachFileInSrc, getCheckedFiles, listStrictNullCheckEligibleCycles } from './getStrictNullCheckEligibleFiles'
+import { listStrictNullCheckEligibleFiles, forEachFileInSrc, getTsConfig, listStrictNullCheckEligibleCycles } from './getStrictNullCheckEligibleFiles'
 import { getImportsForFile, normalizeTsconfigPath } from './tsHelper';
 
 const tsconfigPath = normalizeTsconfigPath(process.argv[2])
@@ -11,9 +11,9 @@ let printDependedOnCount = true
 findCandidates()
 
 async function findCandidates() {
-  const checkedFiles = await getCheckedFiles(tsconfigPath, srcRoot)
-  const eligibleFiles = await listStrictNullCheckEligibleFiles(srcRoot, checkedFiles)
-  const eligibleCycles = await listStrictNullCheckEligibleCycles(srcRoot, checkedFiles)
+  const config = await getTsConfig(tsconfigPath, srcRoot)
+  const eligibleFiles = await listStrictNullCheckEligibleFiles(srcRoot, config)
+  const eligibleCycles = await listStrictNullCheckEligibleCycles(srcRoot, config)
 
   if (eligibleCycles.length > 0) {
     console.log("The following cycles are eligible for enabling strictNullChecks!")
@@ -27,7 +27,7 @@ async function findCandidates() {
 
   const fileToImports = new Map<string, string[]>();
   for (const file of await forEachFileInSrc(srcRoot)) {
-    fileToImports.set(file, getImportsForFile(file, srcRoot))
+    fileToImports.set(file, getImportsForFile(file, srcRoot, config))
   }
 
   const fileToImportsSecondOrder = oneLevelDownImports(fileToImports)

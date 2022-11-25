@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { listStrictNullCheckEligibleFiles, getCheckedFiles, forEachFileInSrc, listStrictNullCheckEligibleCycles } from './getStrictNullCheckEligibleFiles'
+import { listStrictNullCheckEligibleFiles, getTsConfig, forEachFileInSrc, listStrictNullCheckEligibleCycles } from './getStrictNullCheckEligibleFiles'
 import { ImportTracker, normalizeTsconfigPath } from './tsHelper';
 import { findCycles } from './findCycles'
 import { ErrorCounter } from './errorCounter'
@@ -35,28 +35,28 @@ export interface DependencyNode {
 
 async function summary() {
   const allFiles = await forEachFileInSrc(srcRoot)
-  const checkedFiles = await getCheckedFiles(tsconfigPath, srcRoot)
+  const config = await getTsConfig(tsconfigPath, srcRoot)
   const eligibleFiles = new Set([
-    ...await listStrictNullCheckEligibleFiles(srcRoot, checkedFiles),
-    ...(await listStrictNullCheckEligibleCycles(srcRoot, checkedFiles)).reduce((a, b) => a.concat(b), [])
+    ...await listStrictNullCheckEligibleFiles(srcRoot, config),
+    ...(await listStrictNullCheckEligibleCycles(srcRoot, config)).reduce((a, b) => a.concat(b), [])
   ])
-  const importTracker = new ImportTracker(srcRoot)
+  const importTracker = new ImportTracker(srcRoot, config)
 
   let errorCounter = new ErrorCounter(tsconfigPath)
   if (countErrors) {
     errorCounter.start()
   }
 
-  console.log(`Current strict null checking progress ${checkedFiles.size}/${allFiles.length}`)
+  console.log(`Current strict null checking progress ${config.fileNames.length}/${allFiles.length}`)
   console.log(`Current eligible file count: ${eligibleFiles.size}`)
 
-  const cycles = findCycles(srcRoot, allFiles)
+  const cycles = findCycles(srcRoot, allFiles, config)
   let nodes: DependencyNode[] = []
   for (let i = 0; i < cycles.length; i++) {
     let files = cycles[i]
     let checked = true
     for (const file of files) {
-      if (!checkedFiles.has(file)) {
+      if (!config.fileNames.includes(file)) {
         checked = false
         break
       }

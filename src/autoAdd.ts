@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { listStrictNullCheckEligibleFiles, getCheckedFiles } from './getStrictNullCheckEligibleFiles'
+import { listStrictNullCheckEligibleFiles, getTsConfig } from './getStrictNullCheckEligibleFiles'
 import { ErrorCounter } from './errorCounter'
 import { normalizeTsconfigPath } from './tsHelper';
 
@@ -11,7 +11,7 @@ tryAutoAddStrictNulls()
 
 async function tryAutoAddStrictNulls() {
   let hasAddedFile = true
-  const checkedFiles = await getCheckedFiles(tsconfigPath, srcRoot)
+  const config = await getTsConfig(tsconfigPath, srcRoot)
 
   const errorCounter = new ErrorCounter(tsconfigPath)
 
@@ -20,7 +20,7 @@ async function tryAutoAddStrictNulls() {
   while (hasAddedFile) {
     hasAddedFile = false
 
-    const eligibleFiles = await listStrictNullCheckEligibleFiles(srcRoot, checkedFiles)
+    const eligibleFiles = await listStrictNullCheckEligibleFiles(srcRoot, config)
 
     errorCounter.start()
     for (let i = 0; i < eligibleFiles.length; i++) {
@@ -38,7 +38,7 @@ async function tryAutoAddStrictNulls() {
       }
 
       // No point in trying to whitelist the file twice, regardless or success or failure
-      checkedFiles.add(eligibleFiles[i])
+      config.fileNames.push(eligibleFiles[i])
     }
     errorCounter.end()
   }

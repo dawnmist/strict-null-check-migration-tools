@@ -31,6 +31,7 @@ export class ErrorCounter {
     return new Promise<number>(resolve => {
       const listener = (data: any) => {
         const textOut = data.toString()
+        console.log(textOut)
         const match = buildCompletePattern.exec(textOut)
 
         if (match) {
@@ -42,12 +43,12 @@ export class ErrorCounter {
 
       this.tscProcess.stdout.on('data', listener)
 
-      // Create a new config with the file removed from excludes
-      const exclude = new Set(this.originalConfig.exclude)
-      exclude.delete('./' + relativeFilePath)
+      // Create a new config with the file added to files
+      const files = new Set(this.originalConfig.files)
+      files.add('./' + relativeFilePath)
       fs.writeFileSync(this.tsconfigCopyPath, JSON.stringify({
         ...this.originalConfig,
-        exclude: [...exclude],
+        files: [...files],
       }, null, 2))
     })
   }
