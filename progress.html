@@ -208,10 +208,10 @@ class DependencyGraph extends React.Component {
       strokeProps = { stroke: 'blue', strokeWidth: 8 }
     } else if (node.files.length > 1) {
       // Put a thicker stroke around cycles to identify them
-      strokeProps = { stroke: 'black', strokeWidth: 6 }
+      strokeProps = { stroke: 'purple', strokeWidth: 6 }
     } else if (node.errorCount != null && node.errorCount < 5) {
       // Highlight files that are easy to strict null check
-      strokeProps = { stroke: 'darkgreen', strokeWidth: 4 }
+      strokeProps = { stroke: 'cyan', strokeWidth: 4 }
     }
 
     return (
@@ -303,11 +303,11 @@ class DependencyGraph extends React.Component {
           Node depends on files that haven't been strict null checked
         </li>
         <li>
-          <svg width={15} height={15} viewBox={'-15 -15 30 30'}><circle stroke='black' fill='transparent' strokeWidth={6} r={10}/></svg>
+          <svg width={15} height={15} viewBox={'-15 -15 30 30'}><circle stroke='purple' fill='transparent' strokeWidth={6} r={10}/></svg>
           Node represents multiple files in a cycle
         </li>
         <li>
-          <svg width={15} height={15} viewBox={'-15 -15 30 30'}><circle stroke='darkslategrey' fill='transparent' strokeWidth={3} r={10}/></svg>
+          <svg width={15} height={15} viewBox={'-15 -15 30 30'}><circle stroke='cyan' fill='transparent' strokeWidth={3} r={10}/></svg>
           Node has &lt;5 errors to fix in order to strict null check
         </li>
       </ul>
