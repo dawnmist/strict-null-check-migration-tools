@@ -2,14 +2,14 @@ import * as path from 'path'
 import * as fs from 'fs'
 import * as ts from 'typescript'
 
-export function normalizeTsconfigPath(tsconfigPath: string) {
+export function normalizeTsconfigPath(tsconfigPath: string): string {
   return path.resolve(tsconfigPath);
 }
 
 /**
  * Given a file, return the list of files it imports as absolute paths.
  */
-export function getImportsForFile(typescriptFilePath: string, srcRoot: string, config: ts.ParsedCommandLine) {
+export function getImportsForFile(typescriptFilePath: string, srcRoot: string, config: ts.ParsedCommandLine): string[] {
   // Follow symlink so directory check works.
   typescriptFilePath = fs.realpathSync(typescriptFilePath)
   const fileContent = fs.readFileSync(typescriptFilePath).toString();
@@ -19,7 +19,7 @@ export function getImportsForFile(typescriptFilePath: string, srcRoot: string, c
     // remove svg, css imports
     .filter(fileName => !fileName.endsWith(".css") && !fileName.endsWith(".svg") && !fileName.endsWith(".json"))
     .filter(fileName => !fileName.endsWith(".js") && !fileName.endsWith(".jsx")) // Assume .js/.jsx imports have a .d.ts available
-    .reduce((imports, rawImport) => {
+    .reduce((imports: string[], rawImport) => {
         const resolvedImport =
             ts.resolveModuleName(
                 rawImport,
@@ -49,11 +49,10 @@ export class ImportTracker {
   constructor(private srcRoot: string, private config: ts.ParsedCommandLine) {}
 
   public getImports(file: string): string[] {
-    if (this.imports.has(file)) {
-      return this.imports.get(file)
+    const imports = this.imports.get(file) ?? getImportsForFile(file, this.srcRoot, this.config)
+    if (!this.imports.has(file)) {
+      this.imports.set(file, imports)
     }
-    const imports = getImportsForFile(file, this.srcRoot, this.config)
-    this.imports.set(file, imports)
     return imports
   }
 }

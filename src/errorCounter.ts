@@ -4,8 +4,8 @@ import { spawn, ChildProcessWithoutNullStreams, execSync } from 'child_process'
 const buildCompletePattern = /Found (\d+) errors?\. Watching for file changes\./gi
 
 export class ErrorCounter {
-  private tscProcess: ChildProcessWithoutNullStreams
-  private tsconfigCopyPath: string
+  private tscProcess?: ChildProcessWithoutNullStreams
+  private tsconfigCopyPath?: string
   private originalConfig: any
 
   constructor(private tsconfigPath: string) {}
@@ -23,13 +23,26 @@ export class ErrorCounter {
   }
 
   public end(): void {
+    if (!this.tscProcess) {
+      throw Error('No typescript typecheck process set in ErrorCounter::end()!');
+    }
+
     this.tscProcess.kill()
     execSync(`rm ${this.tsconfigCopyPath}`)
   }
 
   public async tryCheckingFile(relativeFilePath: string): Promise<number> {
     return new Promise<number>(resolve => {
+      if (!this.tscProcess) {
+        throw Error('No typescript typecheck process set in ErrorCounter::tryCheckingFile()!');
+      }
+      if (!this.tsconfigCopyPath) {
+        throw Error('No tsconfig copy path set in ErrorCounter::tryCheckingFile()!');
+      }
       const listener = (data: any) => {
+        if (!this.tscProcess) {
+          throw Error('No typescript typecheck process set  in ErrorCounter::tryCheckingFile()::listener()!');
+        }
         const textOut = data.toString()
         console.log(textOut)
         const match = buildCompletePattern.exec(textOut)
@@ -44,11 +57,10 @@ export class ErrorCounter {
       this.tscProcess.stdout.on('data', listener)
 
       // Create a new config with the file added to files
-      const files = new Set(this.originalConfig.files)
-      files.add('./' + relativeFilePath)
+      const files = [...this.originalConfig.files, relativeFilePath];
       fs.writeFileSync(this.tsconfigCopyPath, JSON.stringify({
         ...this.originalConfig,
-        files: [...files],
+        files,
       }, null, 2))
     })
   }

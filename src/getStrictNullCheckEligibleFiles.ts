@@ -6,27 +6,27 @@ import { findCycles } from './findCycles'
 
 function considerFile(file: string): boolean {
   return (file.endsWith('.ts') || file.endsWith('.tsx')) &&
-         !file.endsWith('.stories.tsx')
+         !file.endsWith('.stories.tsx');
 }
 
-function hasUncheckedImport(file: string, importsTracker: ImportTracker, config: ts.ParsedCommandLine): boolean {
-  const imports = importsTracker.getImports(file)
+function hasUncheckedImport(file: string, importsTracker: ImportTracker, checkedFiles: string[]): boolean {
+  const imports = importsTracker.getImports(file);
   for (const imp of imports) {
-    if (!config.fileNames.includes(imp)) {
-      return true
+    if (!checkedFiles.includes(imp)) {
+      return true;
     }
   }
-  return false
+  return false;
 }
 
 export function forEachFileInSrc(srcRoot: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
     glob(`${srcRoot}/!(vendor|node_modules)/**/*.ts?(x)`, (err, files) => {
       if (err) {
-        return reject(err)
+        return reject(err);
       }
 
-      return resolve(files.filter(considerFile))
+      return resolve(files.filter(considerFile));
     })
   })
 }
@@ -40,14 +40,14 @@ export async function listStrictNullCheckEligibleFiles(
   config: ts.ParsedCommandLine,
   checkedFiles: string[]): Promise<string[]> {
 
-  const importsTracker = new ImportTracker(srcRoot, config)
+  const importsTracker = new ImportTracker(srcRoot, config);
 
-  const files = await forEachFileInSrc(srcRoot)
+  const files = await forEachFileInSrc(srcRoot);
   return files.filter(file => {
     if (checkedFiles.includes(file)) {
-      return false
+      return false;
     }
-    return !hasUncheckedImport(file, importsTracker, config)
+    return !hasUncheckedImport(file, importsTracker, checkedFiles);
   })
 }
 
@@ -59,51 +59,45 @@ export async function listStrictNullCheckEligibleCycles(
   srcRoot: string,
   config: ts.ParsedCommandLine): Promise<string[][]> {
 
-  const importsTracker = new ImportTracker(srcRoot, config)
+  const importsTracker = new ImportTracker(srcRoot, config);
 
-  const files = await forEachFileInSrc(srcRoot)
-  const cycles = findCycles(srcRoot, files, config)
+  const files = await forEachFileInSrc(srcRoot);
+  const cycles = findCycles(srcRoot, files, config);
   return cycles.filter(filesInCycle => {
     // A single file is not a cycle
     if (filesInCycle.length <= 1) {
-      return false
+      return false;
     }
 
-    let cycleIsChecked = true
+    let cycleIsChecked = true;
     for (const file of filesInCycle) {
       if (!config.fileNames.includes(file)) {
-        cycleIsChecked = false
-        break
+        cycleIsChecked = false;
+        break;
       }
     }
 
     // The whole cycle has already been whitelisted
     if (cycleIsChecked) {
-      return false
+      return false;
     }
 
     // All imports of all files in the cycle must have
     // been whitelisted for the cycle to be eligible
     for (const file of files) {
-      if (hasUncheckedImport(file, importsTracker, config)) {
-        return false
+      if (hasUncheckedImport(file, importsTracker, config.fileNames)) {
+        return false;
       }
     }
-    return true
+    return true;
   })
-}
-
-interface TSConfig {
-  files: string[]
-  include: string[]
-  exclude: string[]
 }
 
 /**
  * This function returns the list of files that have already been whitelisted into
  * --strictNullChecks.
  */
-export async function getTsConfig(tsconfigPath: string, srcRoot: string): Promise<ts.ParsedCommandLine> {
+export async function getTsConfig(tsconfigPath: string): Promise<ts.ParsedCommandLine> {
   const configFile = ts.readConfigFile(tsconfigPath, ts.sys.readFile)
   const configFileContent = ts.parseJsonConfigFileContent(
     configFile.config,

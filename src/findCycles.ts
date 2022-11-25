@@ -7,66 +7,77 @@ import { getImportsForFile } from './tsHelper'
 // https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm
 //
 // Return a list of (list of files in a cycle, which may be just one file).
-export function findCycles(srcRoot: string, files: string[], config: ts.ParsedCommandLine): string[][] {
-  const imports = new Map<string, Array<string>>()
-  const importers = new Map<string, Set<string>>()
+export type Imports = {
+  [filename: string]: string[];
+}
+export type FileToRoot = {
+  [filename: string]: string;
+}
 
-  let filesInVisitOrder: string[] = []
+export function findCycles(srcRoot: string, files: string[], config: ts.ParsedCommandLine): string[][] {
+  const imports: Imports = {};
+  const importers: Imports = {};
+
+  let filesInVisitOrder: string[] = [];
 
   // Step 1: do a post-order traversal of the dependency tree
   const visit = (file: string) => {
-    if (!imports.has(file)) {
+    if (!imports[file]) {
       const importList = getImportsForFile(file, srcRoot, config)
-      imports.set(file, importList)
+      imports[file] = importList;
 
       // Recursively traverse imports
       for (const imp of importList) {
-        visit(imp)
+        visit(imp);
 
         // Also build the reverse graph while we're at it
-        if (!importers.has(imp)) {
-          importers.set(imp, new Set())
+        if (!importers[imp]) {
+          importers[imp] = [file];
         }
-        importers.get(imp).add(file)
+        else {
+          importers[imp].push(file);
+        }
       }
 
-      filesInVisitOrder.push(file)
+      filesInVisitOrder.push(file);
     }
   }
 
 
   for (const file of files) {
-    visit(file)
+    visit(file);
   }
 
-  filesInVisitOrder.reverse()
+  filesInVisitOrder.reverse();
 
-  const fileToRoot = new Map<string, string>()
-  const rootToFiles = new Map<string, string[]>()
+  const fileToRoot: FileToRoot = {};
+  const rootToFiles: Imports = {};
 
   // Step 2: traverse the graph again, but in the reverse direction
   // This groups files into strongly connected-components using information
   // obtained in step 1.
   const assign = (file: string, root: string) => {
-    if (!fileToRoot.has(file)) {
-      fileToRoot.set(file, root)
+    if (!fileToRoot[file]) {
+      fileToRoot[file] = root;
 
-      if (!rootToFiles.has(root)) {
-        rootToFiles.set(root, []) // array is fine since each file gets visited at most once
+      if (!rootToFiles[root]) {
+        rootToFiles[root] = [file]; // array is fine since each file gets visited at most once
       }
-      rootToFiles.get(root).push(file)
+      else {
+        rootToFiles[root].push(file);
+      }
 
-      if (importers.has(file)) {
-        for (const importer of importers.get(file)) {
-          assign(importer, root)
+      if (importers[file]) {
+        for (const importer of importers[file]) {
+          assign(importer, root);
         }
       }
     }
   }
 
   for (const file of filesInVisitOrder) {
-    assign(file, file)
+    assign(file, file);
   }
 
-  return Array.from(rootToFiles.values())
+  return Object.values(rootToFiles);
 }
