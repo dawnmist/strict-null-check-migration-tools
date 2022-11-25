@@ -37,13 +37,14 @@ export function forEachFileInSrc(srcRoot: string): Promise<string[]> {
  */
 export async function listStrictNullCheckEligibleFiles(
   srcRoot: string,
-  config: ts.ParsedCommandLine): Promise<string[]> {
+  config: ts.ParsedCommandLine,
+  checkedFiles: string[]): Promise<string[]> {
 
   const importsTracker = new ImportTracker(srcRoot, config)
 
   const files = await forEachFileInSrc(srcRoot)
   return files.filter(file => {
-    if (config.fileNames.includes(file)) {
+    if (checkedFiles.includes(file)) {
       return false
     }
     return !hasUncheckedImport(file, importsTracker, config)

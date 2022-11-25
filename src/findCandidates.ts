@@ -12,7 +12,7 @@ findCandidates()
 
 async function findCandidates() {
   const config = await getTsConfig(tsconfigPath, srcRoot)
-  const eligibleFiles = await listStrictNullCheckEligibleFiles(srcRoot, config)
+  const eligibleFiles = await listStrictNullCheckEligibleFiles(srcRoot, config, config.fileNames)
   const eligibleCycles = await listStrictNullCheckEligibleCycles(srcRoot, config)
 
   if (eligibleCycles.length > 0) {

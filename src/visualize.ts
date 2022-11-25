@@ -37,7 +37,7 @@ async function summary() {
   const allFiles = await forEachFileInSrc(srcRoot)
   const config = await getTsConfig(tsconfigPath, srcRoot)
   const eligibleFiles = new Set([
-    ...await listStrictNullCheckEligibleFiles(srcRoot, config),
+    ...await listStrictNullCheckEligibleFiles(srcRoot, config, config.fileNames),
     ...(await listStrictNullCheckEligibleCycles(srcRoot, config)).reduce((a, b) => a.concat(b), [])
   ])
   const importTracker = new ImportTracker(srcRoot, config)

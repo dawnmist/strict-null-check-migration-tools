@@ -12,6 +12,7 @@ tryAutoAddStrictNulls()
 async function tryAutoAddStrictNulls() {
   let hasAddedFile = true
   const config = await getTsConfig(tsconfigPath, srcRoot)
+  const checkedFiles = [...config.fileNames];
 
   const errorCounter = new ErrorCounter(tsconfigPath)
 
@@ -20,7 +21,7 @@ async function tryAutoAddStrictNulls() {
   while (hasAddedFile) {
     hasAddedFile = false
 
-    const eligibleFiles = await listStrictNullCheckEligibleFiles(srcRoot, config)
+    const eligibleFiles = await listStrictNullCheckEligibleFiles(srcRoot, config, checkedFiles)
 
     errorCounter.start()
     for (let i = 0; i < eligibleFiles.length; i++) {
@@ -38,7 +39,7 @@ async function tryAutoAddStrictNulls() {
       }
 
       // No point in trying to whitelist the file twice, regardless or success or failure
-      config.fileNames.push(eligibleFiles[i])
+      checkedFiles.push(eligibleFiles[i])
     }
     errorCounter.end()
   }
@@ -47,7 +48,7 @@ async function tryAutoAddStrictNulls() {
 function addFileToConfig(relativeFilePath: string) {
   const config = JSON.parse(fs.readFileSync(tsconfigPath).toString())
   const path = `./${relativeFilePath}`
-  const excludeIndex = config.exclude.indexOf(path)
+  const excludeIndex = config.exclude?.indexOf(path) ?? -1
   if (excludeIndex >= 0) {
     config.exclude.splice(excludeIndex, 1)
   } else {
