@@ -7,9 +7,17 @@
 
 <script type="text/babel">
 
+const TEST_FILE = ['.test', '_test', '.spec', '_spec'];
+const EXTENSIONS = ['.ts', '.tsx', '.js'];
+
 function isTest(node) {
   return node.files.length === 1 &&
-    (node.files[0].endsWith('_test.ts') || node.files[0].endsWith('_test.tsx'))
+    TEST_FILE.reduce((out, file) => {
+      if (out) {
+        return out;
+      }
+      return EXTENSIONS.filter((ext) => node.files[0].endsWith(`${file}${ext}`)).length > 0;
+    }, false);
 }
 
 class Tooltip extends React.Component {
@@ -17,8 +25,8 @@ class Tooltip extends React.Component {
     return (
       <div style={{
         position: 'absolute',
-        left: this.props.x,
-        top: this.props.y,
+        left: this.props.x + 5,
+        top: this.props.y + 10,
         padding: '5px',
         background: 'black',
         opacity: 0.8,
