@@ -17,6 +17,7 @@ The dependency count is approximate (this script only resolves up to third order
 - [ ] `"./figma_app/views/file_browser/file_action_dropdown.tsx"` — Depended on by >**14** files (8 direct imports)
 ...
 ```
+You can also run a more expensive version of this script `npm run find-candidates -- <your_project_path/tscondif.strictNullChecks.json --countErrors` that tells you how many errors are needed to fix each eligible file, though it takes a long time to run because it needs to compile the codebase multiple times.
 
 - `npm run auto-add -- <your_project_path>/tsconfig.strictNullChecks.json` tries to automatically add to `tsconfig.strictNullChecks.json` every file that can already compile with strictNullChecks without further modifications. It generates an output like this:
 

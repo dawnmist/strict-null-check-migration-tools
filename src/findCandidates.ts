@@ -1,4 +1,5 @@
 import * as path from 'path'
+import { ErrorCounter } from './errorCounter';
 import { Imports } from './findCycles';
 import { listStrictNullCheckEligibleFiles, forEachFileInSrc, getTsConfig, listStrictNullCheckEligibleCycles } from './getStrictNullCheckEligibleFiles'
 import { getImportsForFile, normalizeTsconfigPath } from './tsHelper';
@@ -6,6 +7,7 @@ import { getImportsForFile, normalizeTsconfigPath } from './tsHelper';
 const tsconfigPath = normalizeTsconfigPath(process.argv[2]);
 console.log(tsconfigPath);
 const srcRoot = path.dirname(tsconfigPath);
+const countErrors = process.argv.indexOf('--countErrors') >= 0;
 
 let printDependedOnCount = true;
 
@@ -46,6 +48,22 @@ async function findCandidates() {
     }
   });
 
+  let errorCounts: FileCounts = {};
+  if (countErrors) {
+    let errorCounter = new ErrorCounter(tsconfigPath);
+    errorCounter.start();
+
+    errorCounts = await eligibleFiles.reduce(
+      async (accumulator: Promise<FileCounts>, file): Promise<FileCounts> =>{
+        const out = await accumulator;
+        const relativePath = path.relative(srcRoot, file);
+        out[file] = await errorCounter.tryCheckingFile(relativePath);
+        return out;
+      }, Promise.resolve({}));
+
+    errorCounter.end();
+  }
+
   console.log(`There are ${Object.keys(dependedOnCountThirdOrder).length} files eligible for enabling strictNullChecks!`);
   console.log("These files only depend on other files for which strictNullCheck has already been enabled.");
   if (printDependedOnCount) {
@@ -53,7 +71,9 @@ async function findCandidates() {
     for (const [file, count] of fileDependencyCountArray) {
       const formatted = toFormattedFilePath(file);
       const direct = dependedOnCount[file];
-      console.log(`${formatted} — Depended on by >**${count}** files (${direct} direct imports)`);
+      const errors = errorCounts[file] ?? 0;
+      const errorString = countErrors ? ` - has ${errors} error(s) to fix` : '';
+      console.log(`${formatted} — Depended on by >**${count}** files (${direct} direct imports)${errorString}`);
     }
   } else {
     for (const [file, /*count*/] of fileDependencyCountArray) {
@@ -88,16 +108,16 @@ function oneLevelDownImports(fileToImports: Imports): Imports {
   }, {});
 }
 
-type ImportCounts = {
+type FileCounts = {
   [filename: string]: number;
 };
 
-function countImporters(files: string[], fileToImports: Imports): ImportCounts {
-  const initialDepends = files.reduce((out: ImportCounts, file) => {
+function countImporters(files: string[], fileToImports: Imports): FileCounts {
+  const initialDepends = files.reduce((out: FileCounts, file) => {
     out[file] = 0;
     return out;
   }, {});
-  return Object.keys(fileToImports).reduce((dependedOnCount: ImportCounts, file) => {
+  return Object.keys(fileToImports).reduce((dependedOnCount: FileCounts, file) => {
     const imports = fileToImports[file];
     for (const imp of imports) {
       if (typeof dependedOnCount[imp] === 'number') {
