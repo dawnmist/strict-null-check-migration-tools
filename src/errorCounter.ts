@@ -58,10 +58,10 @@ export class ErrorCounter {
 
       // Create a new config with the file added to files
       const files = [...this.originalConfig.files, relativeFilePath];
-      fs.writeFileSync(this.tsconfigCopyPath, JSON.stringify({
+      fs.writeFileSync(this.tsconfigCopyPath, `${JSON.stringify({
         ...this.originalConfig,
         files,
-      }, null, 2))
+      }, null, 2)}\n`);
     })
   }
 }

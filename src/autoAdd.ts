@@ -54,5 +54,5 @@ function addFileToConfig(relativeFilePath: string) {
     config.files.push(relativeFilePath);
     config.files.sort();
   }
-  fs.writeFileSync(tsconfigPath, JSON.stringify(config, null, 2));
+  fs.writeFileSync(tsconfigPath, `${JSON.stringify(config, null, 2)}\n`);
 }
