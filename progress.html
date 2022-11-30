@@ -108,7 +108,7 @@ class DependencyGraph extends React.Component {
     }
 
     // Split row into subrows because some rows are way too long relative to the rest
-    let maxInSubrow = Math.ceil(avgNodesInRow * 4)
+    let maxInSubrow = Math.ceil(avgNodesInRow * 2)
     let nodesByRowAndSubrow = []
     for (const row of nodesByRow) {
       let numSubrows = Math.ceil(row.length / maxInSubrow)
@@ -182,7 +182,7 @@ class DependencyGraph extends React.Component {
   nodeRadius(node) {
     // Make the area of nodes bigger in proportion to cycle length
     // Take the square root because area ~= radius * radius
-    return (node.checked ? 6 : 10) + Math.sqrt(node.files.length) * 4
+    return 10 + Math.sqrt(node.files.length) * 4
   }
 
   renderNode(node) {
@@ -219,7 +219,7 @@ class DependencyGraph extends React.Component {
       strokeProps = { stroke: 'purple', strokeWidth: 6 }
     } else if (node.errorCount != null && node.errorCount < 5) {
       // Highlight files that are easy to strict null check
-      strokeProps = { stroke: 'cyan', strokeWidth: 4 }
+      strokeProps = { stroke: 'green', strokeWidth: 6 }
     }
 
     return (
@@ -299,7 +299,7 @@ class DependencyGraph extends React.Component {
       <br/>
       <ul>
         <li>
-          <svg width={15} height={15} viewBox={'-15 -15 30 30'}><circle stroke='black' fill='springgreen' strokeWidth={2} r={6}/></svg>
+          <svg width={15} height={15} viewBox={'-15 -15 30 30'}><circle stroke='black' fill='springgreen' strokeWidth={2} r={10}/></svg>
           Node is already in the strict null check whitelist
         </li>
         <li>
@@ -315,7 +315,7 @@ class DependencyGraph extends React.Component {
           Node represents multiple files in a cycle
         </li>
         <li>
-          <svg width={15} height={15} viewBox={'-15 -15 30 30'}><circle stroke='cyan' fill='transparent' strokeWidth={3} r={10}/></svg>
+          <svg width={15} height={15} viewBox={'-15 -15 30 30'}><circle stroke='green' fill='transparent' strokeWidth={6} r={10}/></svg>
           Node has &lt;5 errors to fix in order to strict null check
         </li>
       </ul>
