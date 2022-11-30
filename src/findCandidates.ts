@@ -46,7 +46,7 @@ async function findCandidates() {
     }
   });
 
-  console.log("Here at the list of files eligible for enabling strictNullChecks!");
+  console.log(`There are ${Object.keys(dependedOnCountThirdOrder).length} files eligible for enabling strictNullChecks!`);
   console.log("These files only depend on other files for which strictNullCheck has already been enabled.");
   if (printDependedOnCount) {
     console.log("The dependency count is approximate (this script only resolves up to third order imports).");
@@ -93,12 +93,17 @@ type ImportCounts = {
 };
 
 function countImporters(files: string[], fileToImports: Imports): ImportCounts {
+  const initialDepends = files.reduce((out: ImportCounts, file) => {
+    out[file] = 0;
+    return out;
+  }, {});
   return Object.keys(fileToImports).reduce((dependedOnCount: ImportCounts, file) => {
     const imports = fileToImports[file];
     for (const imp of imports) {
-      const currentCount = dependedOnCount[imp] ?? 0;
-      dependedOnCount[imp] = currentCount + 1;
+      if (typeof dependedOnCount[imp] === 'number') {
+        dependedOnCount[imp] = dependedOnCount[imp] + 1;
+      }
     }
     return dependedOnCount;
-  }, {})
+  }, initialDepends)
 }
