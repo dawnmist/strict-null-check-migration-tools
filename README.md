@@ -54,3 +54,15 @@ Files not part of a strongly connected components (1974)
 - `npm run visualize <your_project_path>/tsconfig.strictNullChecks.json` generates visualization data for strict null check progress in `data.js`. In order to view that data, open `progress.html`, a self-contained HTML file.
 
 You can also run a more expensive version of this script `npm run visualize <your_project_path>/tsconfig.strictNullChecks.json --countErrors` that tells you how many errors are needed to fix each eligible file, though it takes a long time to run because it needs to compile the codebase multiple times.
+
+- `npm run find-remaining <your_project_path>/tsconfig.strictNullChecks.json` returns a list of all the files that are not in the tsconfig file and are therefore not yet passing strict null checks. This can be useful if you want to split the remaining work between multiple teams. It generates an output like this:
+
+```
+Files not being strict-null-checked:
+------------------------------------
+- [ ] `"./figma_app/views/controls/scrubbable_control.tsx"`
+- [ ] `"./figma_app/plugin/jsvm_node_properties.ts"`
+- [ ] `"./figma_app/views/payments/banners/banners.tsx"`
+- [ ] `"./figma_app/views/file_browser/file_action_dropdown.tsx"`
+...
+```

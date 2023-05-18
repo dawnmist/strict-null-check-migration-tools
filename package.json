@@ -6,7 +6,8 @@
     "find-candidates": "tsc && node src/findCandidates.js",
     "auto-add": "tsc && node src/autoAdd.js",
     "find-cycles": "tsc && node src/runFindCycles.js",
-    "visualize": "tsc && node src/visualize.js"
+    "visualize": "tsc && node src/visualize.js",
+    "find-remaining": "tsc && node src/runFindRemaining.js"
   },
   "keywords": [
     "strict",
